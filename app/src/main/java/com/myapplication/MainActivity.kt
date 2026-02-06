@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             InventarioAPPTheme {
                 val navController = rememberNavController()
-                val appContainer = (application as InventarioApp).container
+                val appContainer = (application as EscuelaApp).container
                 val authViewModel: AuthViewModel = viewModel(
                     factory = AuthViewModelFactory(
                         appContainer.loginUseCase,
