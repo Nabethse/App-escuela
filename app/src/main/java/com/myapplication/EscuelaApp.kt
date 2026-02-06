@@ -1,8 +1,8 @@
 package com.myapplication
 
 import android.app.Application
-import com.myapplication.data.di.AppContainer
-import com.myapplication.data.di.DefaultAppContainer
+import com.myapplication.core.di.AppContainer
+import com.myapplication.core.di.DefaultAppContainer
 
 class EscuelaApp : Application() {
     lateinit var container: AppContainer
