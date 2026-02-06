@@ -1,9 +1,13 @@
 package com.myapplication.features.teacher.presentation.screens
 
-import com.myapplication.features.teacher.data.datasource.remote.model.TeacherDto
+data class TeacherUiModel(
+    val id: Int?,
+    val name: String,
+    val asignature: String
+)
 
 sealed interface TeacherUiState {
     object Loading : TeacherUiState
-    data class Success(val teachers: List<TeacherDto>) : TeacherUiState
+    data class Success(val teachers: List<TeacherUiModel>) : TeacherUiState
     data class Error(val message: String) : TeacherUiState
 }
