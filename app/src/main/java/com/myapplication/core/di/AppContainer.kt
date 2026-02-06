@@ -1,4 +1,4 @@
-package com.myapplication.data.di
+package com.myapplication.core.di
 
 import com.myapplication.core.network.AlumnApi
 import com.myapplication.core.network.AuthApi
@@ -10,11 +10,11 @@ import com.myapplication.features.auth.domain.usecases.RegisterUseCase
 import com.myapplication.features.auth.presentation.viewmodel.AuthViewModelFactory
 import com.myapplication.features.teacher.data.repositories.TeacherRepositoryImpl
 import com.myapplication.features.teacher.domain.repositories.TeacherRepository
-import com.myapplication.features.teacher.domain.usecases.GetTeachersUseCase
+import com.myapplication.features.teacher.domain.usecases.*
 import com.myapplication.features.teacher.presentation.viewmodel.TeacherViewModelFactory
 import com.myapplication.features.alumn.data.repositories.AlumnRepositoryImpl
 import com.myapplication.features.alumn.domain.repositories.AlumnRepository
-import com.myapplication.features.alumn.domain.usecases.GetAlumnsUseCase
+import com.myapplication.features.alumn.domain.usecases.*
 import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModelFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -51,23 +51,42 @@ class DefaultAppContainer : AppContainer {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    // APIs
-    private val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
-    private val teacherApi: TeacherApi by lazy { retrofit.create(TeacherApi::class.java) }
-    private val alumnApi: AlumnApi by lazy { retrofit.create(AlumnApi::class.java) }
+    private val authApi: AuthApi by lazy {
+        retrofit.create(AuthApi::class.java)
+    }
 
-    // Repositories
-    private val authRepository: AuthRepository by lazy { AuthRepositoryImpl(authApi) }
-    private val teacherRepository: TeacherRepository by lazy { TeacherRepositoryImpl(teacherApi) }
-    private val alumnRepository: AlumnRepository by lazy { AlumnRepositoryImpl(alumnApi) }
+    private val teacherApi: TeacherApi by lazy {
+        retrofit.create(TeacherApi::class.java)
+    }
 
-    // Use Cases
-    override val loginUseCase: LoginUseCase by lazy { LoginUseCase(authRepository) }
-    override val registerUseCase: RegisterUseCase by lazy { RegisterUseCase(authRepository) }
+    private val alumnApi: AlumnApi by lazy {
+        retrofit.create(AlumnApi::class.java)
+    }
+
+    private val authRepository: AuthRepository by lazy {
+        AuthRepositoryImpl(authApi)
+    }
+
+    private val teacherRepository: TeacherRepository by lazy {
+        TeacherRepositoryImpl(teacherApi)
+    }
+
+    private val alumnRepository: AlumnRepository by lazy {
+        AlumnRepositoryImpl(alumnApi)
+    }
+
+    override val loginUseCase: LoginUseCase by lazy {
+        LoginUseCase(authRepository)
+    }
+
+    override val registerUseCase: RegisterUseCase by lazy {
+        RegisterUseCase(authRepository)
+    }
+
     private val getTeachersUseCase: GetTeachersUseCase by lazy { GetTeachersUseCase(teacherRepository) }
     private val getAlumnsUseCase: GetAlumnsUseCase by lazy { GetAlumnsUseCase(alumnRepository) }
 
-    // ViewModel Factories (El "Método Factory")
+    // Factories
     override val authViewModelFactory: AuthViewModelFactory by lazy {
         AuthViewModelFactory(loginUseCase, registerUseCase)
     }

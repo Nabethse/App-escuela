@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace = "com.myapplication"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.myapplication"
@@ -48,6 +46,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
+    implementation(libs.logging.interceptor)
     implementation(libs.coil.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
