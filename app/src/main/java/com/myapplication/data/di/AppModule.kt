@@ -11,10 +11,16 @@ import com.myapplication.features.auth.presentation.viewmodel.AuthViewModelFacto
 import com.myapplication.features.teacher.data.repositories.TeacherRepositoryImpl
 import com.myapplication.features.teacher.domain.repositories.TeacherRepository
 import com.myapplication.features.teacher.domain.usecases.GetTeachersUseCase
+import com.myapplication.features.teacher.domain.usecases.CreateTeacherUseCase
+import com.myapplication.features.teacher.domain.usecases.UpdateTeacherUseCase
+import com.myapplication.features.teacher.domain.usecases.DeleteTeacherUseCase
 import com.myapplication.features.teacher.presentation.viewmodel.TeacherViewModelFactory
 import com.myapplication.features.alumn.data.repositories.AlumnRepositoryImpl
 import com.myapplication.features.alumn.domain.repositories.AlumnRepository
 import com.myapplication.features.alumn.domain.usecases.GetAlumnsUseCase
+import com.myapplication.features.alumn.domain.usecases.CreateAlumnUseCase
+import com.myapplication.features.alumn.domain.usecases.UpdateAlumnUseCase
+import com.myapplication.features.alumn.domain.usecases.DeleteAlumnUseCase
 import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModelFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -64,8 +70,16 @@ class DefaultAppContainer : AppContainer {
     // Use Cases
     override val loginUseCase: LoginUseCase by lazy { LoginUseCase(authRepository) }
     override val registerUseCase: RegisterUseCase by lazy { RegisterUseCase(authRepository) }
+    
     private val getTeachersUseCase: GetTeachersUseCase by lazy { GetTeachersUseCase(teacherRepository) }
+    private val createTeacherUseCase: CreateTeacherUseCase by lazy { CreateTeacherUseCase(teacherRepository) }
+    private val updateTeacherUseCase: UpdateTeacherUseCase by lazy { UpdateTeacherUseCase(teacherRepository) }
+    private val deleteTeacherUseCase: DeleteTeacherUseCase by lazy { DeleteTeacherUseCase(teacherRepository) }
+    
     private val getAlumnsUseCase: GetAlumnsUseCase by lazy { GetAlumnsUseCase(alumnRepository) }
+    private val createAlumnUseCase: CreateAlumnUseCase by lazy { CreateAlumnUseCase(alumnRepository) }
+    private val updateAlumnUseCase: UpdateAlumnUseCase by lazy { UpdateAlumnUseCase(alumnRepository) }
+    private val deleteAlumnUseCase: DeleteAlumnUseCase by lazy { DeleteAlumnUseCase(alumnRepository) }
 
     // ViewModel Factories (El "Método Factory")
     override val authViewModelFactory: AuthViewModelFactory by lazy {
@@ -73,10 +87,20 @@ class DefaultAppContainer : AppContainer {
     }
 
     override val teacherViewModelFactory: TeacherViewModelFactory by lazy {
-        TeacherViewModelFactory(getTeachersUseCase)
+        TeacherViewModelFactory(
+            getTeachersUseCase,
+            createTeacherUseCase,
+            updateTeacherUseCase,
+            deleteTeacherUseCase
+        )
     }
 
     override val alumnViewModelFactory: AlumnViewModelFactory by lazy {
-        AlumnViewModelFactory(getAlumnsUseCase)
+        AlumnViewModelFactory(
+            getAlumnsUseCase,
+            createAlumnUseCase,
+            updateAlumnUseCase,
+            deleteAlumnUseCase
+        )
     }
 }

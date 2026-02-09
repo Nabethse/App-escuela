@@ -23,7 +23,11 @@ class AuthViewModel(
             _authState.value = AuthState.Loading
             try {
                 val response = loginUseCase(LoginRequest(email, password))
-                _authState.value = AuthState.Success(response.token)
+                if (response.token != null) {
+                    _authState.value = AuthState.Success(response.token)
+                } else {
+                    _authState.value = AuthState.Error("Login fallido: No se recibió token")
+                }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error desconocido")
             }
@@ -35,7 +39,17 @@ class AuthViewModel(
             _authState.value = AuthState.Loading
             try {
                 val response = registerUseCase(RegisterRequest(name, email, password))
-                _authState.value = AuthState.Success(response.token)
+                // Al registrarse, el servidor devuelve un mensaje de éxito, pero quizás no el token inmediatamente.
+                // Si el servidor devuelve el token en el registro, lo usamos.
+                if (response.token != null) {
+                    _authState.value = AuthState.Success(response.token)
+                } else {
+                    // Si el registro fue exitoso pero no hay token, podemos indicar éxito de otra forma o pedir login.
+                    // Según tu prueba de Insomnia, el registro devuelve un mensaje, no un token.
+                    // Sin embargo, para que la app navegue al Home, necesitamos un token.
+                    // Si el registro NO devuelve token, podrías cambiar el estado a algo como AuthState.Registered
+                    _authState.value = AuthState.Error(response.message ?: "Registro exitoso, por favor inicia sesión")
+                }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error desconocido")
             }

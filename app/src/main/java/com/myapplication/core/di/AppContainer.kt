@@ -83,8 +83,17 @@ class DefaultAppContainer : AppContainer {
         RegisterUseCase(authRepository)
     }
 
+    // Teacher Use Cases
     private val getTeachersUseCase: GetTeachersUseCase by lazy { GetTeachersUseCase(teacherRepository) }
+    private val createTeacherUseCase: CreateTeacherUseCase by lazy { CreateTeacherUseCase(teacherRepository) }
+    private val updateTeacherUseCase: UpdateTeacherUseCase by lazy { UpdateTeacherUseCase(teacherRepository) }
+    private val deleteTeacherUseCase: DeleteTeacherUseCase by lazy { DeleteTeacherUseCase(teacherRepository) }
+
+    // Alumn Use Cases
     private val getAlumnsUseCase: GetAlumnsUseCase by lazy { GetAlumnsUseCase(alumnRepository) }
+    private val createAlumnUseCase: CreateAlumnUseCase by lazy { CreateAlumnUseCase(alumnRepository) }
+    private val updateAlumnUseCase: UpdateAlumnUseCase by lazy { UpdateAlumnUseCase(alumnRepository) }
+    private val deleteAlumnUseCase: DeleteAlumnUseCase by lazy { DeleteAlumnUseCase(alumnRepository) }
 
     // Factories
     override val authViewModelFactory: AuthViewModelFactory by lazy {
@@ -92,10 +101,20 @@ class DefaultAppContainer : AppContainer {
     }
 
     override val teacherViewModelFactory: TeacherViewModelFactory by lazy {
-        TeacherViewModelFactory(getTeachersUseCase)
+        TeacherViewModelFactory(
+            getTeachersUseCase,
+            createTeacherUseCase,
+            updateTeacherUseCase,
+            deleteTeacherUseCase
+        )
     }
 
     override val alumnViewModelFactory: AlumnViewModelFactory by lazy {
-        AlumnViewModelFactory(getAlumnsUseCase)
+        AlumnViewModelFactory(
+            getAlumnsUseCase,
+            createAlumnUseCase,
+            updateAlumnUseCase,
+            deleteAlumnUseCase
+        )
     }
 }
