@@ -2,6 +2,7 @@ package com.myapplication.features.alumn.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myapplication.core.util.LocationHelper
 import com.myapplication.features.alumn.data.datasource.remote.model.AlumnDto
 import com.myapplication.features.alumn.data.repositories.AlumnRepositoryImpl
 import com.myapplication.features.alumn.domain.repositories.AlumnRepository
@@ -21,7 +22,8 @@ class AlumnViewModel @Inject constructor(
     private val createAlumnUseCase: CreateAlumnUseCase,
     private val updateAlumnUseCase: UpdateAlumnUseCase,
     private val deleteAlumnUseCase: DeleteAlumnUseCase,
-    private val alumnRepository: AlumnRepository
+    private val alumnRepository: AlumnRepository,
+    private val locationHelper: LocationHelper
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AlumnUiState>(AlumnUiState.Loading)
@@ -51,10 +53,8 @@ class AlumnViewModel @Inject constructor(
     fun refreshAlumns() {
         viewModelScope.launch {
             try {
-                // Passing empty token since AuthInterceptor handles it
                 getAlumnsUseCase("")
             } catch (e: Exception) {
-                // Error handled by offline-first (UI still shows cached data)
             }
         }
     }
@@ -85,6 +85,18 @@ class AlumnViewModel @Inject constructor(
                 deleteAlumnUseCase("", id)
                 refreshAlumns()
             } catch (e: Exception) {
+            }
+        }
+    }
+
+    fun checkInLocation() {
+        viewModelScope.launch {
+            val location = locationHelper.getCurrentLocation()
+            if (location != null) {
+                val isInSchool = locationHelper.isLocationInSchool(location)
+                if (isInSchool) {
+                    // Aquí podrías llamar a un caso de uso para registrar la asistencia
+                }
             }
         }
     }

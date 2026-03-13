@@ -2,6 +2,7 @@ package com.myapplication.features.alumn.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.myapplication.core.util.LocationHelper
 import com.myapplication.features.alumn.domain.repositories.AlumnRepository
 import com.myapplication.features.alumn.domain.usecases.CreateAlumnUseCase
 import com.myapplication.features.alumn.domain.usecases.DeleteAlumnUseCase
@@ -13,7 +14,8 @@ class AlumnViewModelFactory(
     private val createAlumnUseCase: CreateAlumnUseCase,
     private val updateAlumnUseCase: UpdateAlumnUseCase,
     private val deleteAlumnUseCase: DeleteAlumnUseCase,
-    private val alumnRepository: AlumnRepository
+    private val alumnRepository: AlumnRepository,
+    private val locationHelper: LocationHelper
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AlumnViewModel::class.java)) {
@@ -23,7 +25,8 @@ class AlumnViewModelFactory(
                 createAlumnUseCase,
                 updateAlumnUseCase,
                 deleteAlumnUseCase,
-                alumnRepository
+                alumnRepository,
+                locationHelper
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
