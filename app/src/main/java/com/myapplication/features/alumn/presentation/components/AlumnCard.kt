@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +18,8 @@ fun AlumnCard(
     alumn: AlumnUiModel,
     onEdit: (AlumnUiModel) -> Unit,
     onDelete: (Int) -> Unit,
+    onCapturePhoto: (Int) -> Unit,
+    onCheckIn: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -37,6 +41,12 @@ fun AlumnCard(
                 alumn.email?.let {
                     Text(text = "Correo: $it", style = MaterialTheme.typography.bodySmall)
                 }
+            }
+            IconButton(onClick = { alumn.id?.let { onCapturePhoto(it) } }) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = "Capturar Foto")
+            }
+            IconButton(onClick = { alumn.id?.let { onCheckIn(it) } }) {
+                Icon(Icons.Default.LocationOn, contentDescription = "Check-in GPS")
             }
             IconButton(onClick = { onEdit(alumn) }) {
                 Icon(Icons.Default.Edit, contentDescription = "Editar")

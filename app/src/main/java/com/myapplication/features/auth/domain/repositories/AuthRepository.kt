@@ -7,4 +7,5 @@ import com.myapplication.features.auth.data.datasource.remote.model.RegisterRequ
 interface AuthRepository {
     suspend fun login(request: LoginRequest): AuthResponse
     suspend fun register(request: RegisterRequest): AuthResponse
+    suspend fun logout()
 }
