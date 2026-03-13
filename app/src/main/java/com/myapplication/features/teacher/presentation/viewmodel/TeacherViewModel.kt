@@ -7,11 +7,14 @@ import com.myapplication.features.teacher.data.datasource.remote.model.TeacherDt
 import com.myapplication.features.teacher.domain.usecases.*
 import com.myapplication.features.teacher.presentation.screens.TeacherUiModel
 import com.myapplication.features.teacher.presentation.screens.TeacherUiState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class TeacherViewModel(
+@HiltViewModel
+class TeacherViewModel @Inject constructor(
     private val getTeachersUseCase: GetTeachersUseCase,
     private val createTeacherUseCase: CreateTeacherUseCase,
     private val updateTeacherUseCase: UpdateTeacherUseCase,

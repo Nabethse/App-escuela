@@ -1,6 +1,8 @@
 package com.myapplication.features.auth.presentation.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +16,8 @@ import com.myapplication.features.auth.presentation.viewmodel.AuthState
 fun LoginScreen(
     authState: AuthState,
     onLogin: (String, String) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onBiometricLogin: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -54,6 +57,18 @@ fun LoginScreen(
             ) {
                 Text("Entrar")
             }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            OutlinedButton(
+                onClick = onBiometricLogin,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Fingerprint, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ingresar con Huella")
+            }
+
             TextButton(onClick = onNavigateToRegister) {
                 Text("¿No tienes cuenta? Regístrate")
             }

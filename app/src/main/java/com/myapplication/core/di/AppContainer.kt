@@ -21,6 +21,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import com.myapplication.core.data.UserPreferencesRepository
+import com.myapplication.features.alumn.data.datasource.local.dao.AlumnDao
 
 interface AppContainer {
     val authViewModelFactory: AuthViewModelFactory
@@ -31,7 +33,10 @@ interface AppContainer {
     val registerUseCase: RegisterUseCase
 }
 
-class DefaultAppContainer : AppContainer {
+class DefaultAppContainer(
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val alumnDao: AlumnDao
+) : AppContainer {
 
     private val baseUrl = "https://antozac.store/"
 
@@ -64,7 +69,7 @@ class DefaultAppContainer : AppContainer {
     }
 
     private val authRepository: AuthRepository by lazy {
-        AuthRepositoryImpl(authApi)
+        AuthRepositoryImpl(authApi, userPreferencesRepository)
     }
 
     private val teacherRepository: TeacherRepository by lazy {
@@ -72,7 +77,7 @@ class DefaultAppContainer : AppContainer {
     }
 
     private val alumnRepository: AlumnRepository by lazy {
-        AlumnRepositoryImpl(alumnApi)
+        AlumnRepositoryImpl(alumnApi, alumnDao)
     }
 
     override val loginUseCase: LoginUseCase by lazy {
@@ -97,7 +102,7 @@ class DefaultAppContainer : AppContainer {
 
     // Factories
     override val authViewModelFactory: AuthViewModelFactory by lazy {
-        AuthViewModelFactory(loginUseCase, registerUseCase)
+        AuthViewModelFactory(loginUseCase, registerUseCase, authRepository, userPreferencesRepository)
     }
 
     override val teacherViewModelFactory: TeacherViewModelFactory by lazy {
@@ -114,7 +119,8 @@ class DefaultAppContainer : AppContainer {
             getAlumnsUseCase,
             createAlumnUseCase,
             updateAlumnUseCase,
-            deleteAlumnUseCase
+            deleteAlumnUseCase,
+            alumnRepository
         )
     }
 }

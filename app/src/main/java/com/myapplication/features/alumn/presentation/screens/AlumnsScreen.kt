@@ -16,16 +16,11 @@ import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlumnsScreen(
-    viewModel: AlumnViewModel,
-    token: String
+    viewModel: AlumnViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var editingAlumn by remember { mutableStateOf<AlumnUiModel?>(null) }
-
-    LaunchedEffect(Unit) {
-        viewModel.getAlumns(token)
-    }
 
     Scaffold(
         topBar = {
@@ -52,7 +47,9 @@ fun AlumnsScreen(
                             AlumnCard(
                                 alumn = alumn,
                                 onEdit = { editingAlumn = it },
-                                onDelete = { id -> viewModel.deleteAlumn(token, id) }
+                                onDelete = { id -> viewModel.deleteAlumn(id) },
+                                onCapturePhoto = { /* Función F02: Cámara */ },
+                                onCheckIn = { /* Función F03: GPS */ }
                             )
                         }
                     }
@@ -71,7 +68,7 @@ fun AlumnsScreen(
                 title = "Agregar Alumno",
                 onDismiss = { showAddDialog = false },
                 onConfirm = { name, matricula ->
-                    viewModel.createAlumn(token, name, matricula)
+                    viewModel.createAlumn(name, matricula)
                     showAddDialog = false
                 }
             )
@@ -84,7 +81,7 @@ fun AlumnsScreen(
                 initialMatricula = alumn.matricula,
                 onDismiss = { editingAlumn = null },
                 onConfirm = { name, matricula ->
-                    alumn.id?.let { viewModel.updateAlumn(token, it, name, matricula) }
+                    alumn.id?.let { viewModel.updateAlumn(it, name, matricula) }
                     editingAlumn = null
                 }
             )
