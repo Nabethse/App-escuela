@@ -12,7 +12,10 @@ import com.myapplication.features.auth.domain.usecases.RegisterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow as FlowStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import javax.inject.Inject
@@ -28,6 +31,9 @@ class AuthViewModel @Inject constructor(
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState
+
+    val isBiometricEnabled: FlowStateFlow<Boolean> = userPreferencesRepository.isBiometricEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
@@ -103,6 +109,12 @@ class AuthViewModel @Inject constructor(
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error al recuperar la sesión: ${e.message}")
             }
+        }
+    }
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setBiometricEnabled(enabled)
         }
     }
 

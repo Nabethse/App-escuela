@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
                 
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val authState by authViewModel.authState.collectAsState()
+                val isBiometricEnabled by authViewModel.isBiometricEnabled.collectAsState()
 
                 LaunchedEffect(authState) {
                     if (authState is AuthState.Success) {
@@ -52,6 +53,7 @@ class MainActivity : AppCompatActivity() {
                     composable("login") {
                         LoginScreen(
                             authState = authState,
+                            isBiometricEnabled = isBiometricEnabled,
                             onLogin = { email, password ->
                                 authViewModel.login(email, password)
                             },
@@ -78,6 +80,9 @@ class MainActivity : AppCompatActivity() {
                                 } else {
                                     Toast.makeText(this@MainActivity, "Biometría no disponible en este dispositivo", Toast.LENGTH_SHORT).show()
                                 }
+                            },
+                            onToggleBiometric = { enabled ->
+                                authViewModel.setBiometricEnabled(enabled)
                             }
                         )
                     }

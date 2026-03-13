@@ -2,6 +2,7 @@ package com.myapplication.core.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
@@ -15,10 +16,15 @@ class UserPreferencesRepository @Inject constructor(
 ) {
     private companion object {
         val USER_TOKEN = stringPreferencesKey("user_token")
+        val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
     }
 
     val userToken: Flow<String?> = dataStore.data.map { preferences ->
         preferences[USER_TOKEN]
+    }
+
+    val isBiometricEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[BIOMETRIC_ENABLED] ?: false
     }
 
     suspend fun saveToken(token: String) {
@@ -27,9 +33,20 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun setBiometricEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[BIOMETRIC_ENABLED] = enabled
+        }
+    }
+
     suspend fun clearToken() {
         dataStore.edit { preferences ->
             preferences.remove(USER_TOKEN)
+            // No borramos BIOMETRIC_ENABLED aquí para que el usuario no tenga que activarlo siempre
         }
+    }
+    
+    suspend fun fullClear() {
+        dataStore.edit { it.clear() }
     }
 }
