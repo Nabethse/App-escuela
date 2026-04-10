@@ -18,6 +18,8 @@ import com.myapplication.features.auth.presentation.screens.LoginScreen
 import com.myapplication.features.auth.presentation.screens.RegisterScreen
 import com.myapplication.features.auth.presentation.viewmodel.AuthState
 import com.myapplication.features.auth.presentation.viewmodel.AuthViewModel
+import com.myapplication.features.attendance.presentation.screens.AttendanceScreen
+import com.myapplication.features.attendance.presentation.viewmodel.AttendanceViewModel
 import com.myapplication.features.home.presentation.screens.HomeScreen
 import com.myapplication.features.teacher.presentation.screens.TeachersScreen
 import com.myapplication.features.teacher.presentation.viewmodel.TeacherViewModel
@@ -102,6 +104,7 @@ class MainActivity : AppCompatActivity() {
                         HomeScreen(
                             onNavigateToTeachers = { navController.navigate("teachers") },
                             onNavigateToAlumns = { navController.navigate("alumns") },
+                            onNavigateToAttendance = { navController.navigate("attendance") },
                             onLogout = { 
                                 authViewModel.logout()
                                 navController.navigate("login") {
@@ -109,6 +112,10 @@ class MainActivity : AppCompatActivity() {
                                 }
                             }
                         )
+                    }
+                    composable("attendance") {
+                        val attendanceViewModel: AttendanceViewModel = hiltViewModel()
+                        AttendanceScreen(viewModel = attendanceViewModel, onNavigateBack = { navController.popBackStack() })
                     }
                     composable("teachers") {
                         val teacherViewModel: TeacherViewModel = hiltViewModel()

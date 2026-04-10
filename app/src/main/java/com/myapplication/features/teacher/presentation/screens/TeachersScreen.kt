@@ -1,14 +1,17 @@
 package com.myapplication.features.teacher.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.myapplication.features.teacher.presentation.components.TeacherCard
 import com.myapplication.features.teacher.presentation.viewmodel.TeacherViewModel
@@ -29,17 +32,32 @@ fun TeachersScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Profesores") })
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        "Profesores",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                    ) 
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar Profesor")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showDialog = true },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Nuevo Profesor") },
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
+            )
         }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
             when (val state = uiState) {
@@ -47,19 +65,29 @@ fun TeachersScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 is TeacherUiState.Success -> {
-                    LazyColumn {
-                        items(state.teachers) { teacher ->
-                            TeacherCard(
-                                teacher = teacher,
-                                onEdit = { editingTeacher = it },
-                                onDelete = { id -> viewModel.deleteTeacher(token, id) }
-                            )
+                    if (state.teachers.isEmpty()) {
+                        EmptyStateTeachers(
+                            message = "No hay profesores registrados",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            items(state.teachers) { teacher ->
+                                TeacherCard(
+                                    teacher = teacher,
+                                    onEdit = { editingTeacher = it },
+                                    onDelete = { id -> viewModel.deleteTeacher(token, id) }
+                                )
+                            }
                         }
                     }
                 }
                 is TeacherUiState.Error -> {
                     Text(
                         text = state.message,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -88,6 +116,23 @@ fun TeachersScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+fun EmptyStateTeachers(message: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Default.School, 
+            contentDescription = null, 
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.outline
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = message, color = MaterialTheme.colorScheme.outline)
     }
 }
 

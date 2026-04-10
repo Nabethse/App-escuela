@@ -15,6 +15,7 @@ class AlumnViewModelFactory(
     private val updateAlumnUseCase: UpdateAlumnUseCase,
     private val deleteAlumnUseCase: DeleteAlumnUseCase,
     private val alumnRepository: AlumnRepository,
+    private val attendanceRepository: com.myapplication.features.attendance.domain.repositories.AttendanceRepository,
     private val locationHelper: LocationHelper
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -26,6 +27,7 @@ class AlumnViewModelFactory(
                 updateAlumnUseCase,
                 deleteAlumnUseCase,
                 alumnRepository,
+                attendanceRepository,
                 locationHelper
             ) as T
         }

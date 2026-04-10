@@ -7,17 +7,23 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.myapplication.features.alumn.presentation.components.AlumnCard
@@ -38,10 +44,15 @@ fun AlumnsScreen(
     
     // Cámara logic
     var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var currentAlumnIdForPhoto by remember { mutableStateOf<Int?>(null) }
+    
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) {
+        if (success && currentAlumnIdForPhoto != null) {
+            photoUri?.let { uri ->
+                viewModel.updateAlumnPhoto(currentAlumnIdForPhoto!!, uri.toString())
+            }
             Toast.makeText(context, "Foto guardada correctamente", Toast.LENGTH_SHORT).show()
         }
     }
@@ -59,13 +70,16 @@ fun AlumnsScreen(
     }
 
     // Ubicación logic
+    var pendingAlumnCheckIn by remember { mutableStateOf<Pair<Int, String>?>(null) }
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val granted = permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
                       permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)
         if (granted) {
-            viewModel.checkInLocation()
+            pendingAlumnCheckIn?.let { (id, name) ->
+                viewModel.checkInLocation(id, name)
+            }
         } else {
             Toast.makeText(context, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
         }
@@ -73,17 +87,32 @@ fun AlumnsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Alumnos") })
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        "Alumnos",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                    ) 
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar Alumno")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showAddDialog = true },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Nuevo Alumno") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         }
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
             when (val state = uiState) {
@@ -91,37 +120,49 @@ fun AlumnsScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 is AlumnUiState.Success -> {
-                    LazyColumn {
-                        items(state.alumns) { alumn ->
-                            AlumnCard(
-                                alumn = alumn,
-                                onEdit = { editingAlumn = it },
-                                onDelete = { id -> viewModel.deleteAlumn(id) },
-                                onCapturePhoto = { 
-                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                        val uri = createImageUri(context)
-                                        photoUri = uri
-                                        cameraLauncher.launch(uri)
-                                    } else {
-                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    if (state.alumns.isEmpty()) {
+                        EmptyState(
+                            message = "No hay alumnos registrados",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(bottom = 80.dp)
+                        ) {
+                            items(state.alumns) { alumn ->
+                                AlumnCard(
+                                    alumn = alumn,
+                                    onEdit = { editingAlumn = it },
+                                    onDelete = { id -> viewModel.deleteAlumn(id) },
+                                    onCapturePhoto = { 
+                                        currentAlumnIdForPhoto = alumn.id
+                                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                            val uri = createImageUri(context)
+                                            photoUri = uri
+                                            cameraLauncher.launch(uri)
+                                        } else {
+                                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                        }
+                                    },
+                                    onCheckIn = { id ->
+                                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                            viewModel.checkInLocation(id, alumn.name)
+                                        } else {
+                                            pendingAlumnCheckIn = id to alumn.name
+                                            locationPermissionLauncher.launch(
+                                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                                            )
+                                        }
                                     }
-                                },
-                                onCheckIn = {
-                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                                        viewModel.checkInLocation()
-                                    } else {
-                                        locationPermissionLauncher.launch(
-                                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                                        )
-                                    }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
                 is AlumnUiState.Error -> {
                     Text(
                         text = state.message,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -151,6 +192,23 @@ fun AlumnsScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+fun EmptyState(message: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Default.Person, 
+            contentDescription = null, 
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.outline
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = message, color = MaterialTheme.colorScheme.outline)
     }
 }
 

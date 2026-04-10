@@ -6,5 +6,6 @@ data class AlumnDto(
     @SerializedName("id") val id: Int? = null,
     @SerializedName("name") val name: String,
     @SerializedName("matricula") val matricula: String,
-    @SerializedName("email") val email: String? = null
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("photo_path") val photoPath: String? = null
 )

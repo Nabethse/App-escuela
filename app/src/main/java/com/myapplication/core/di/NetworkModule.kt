@@ -1,6 +1,7 @@
 package com.myapplication.core.di
 
 import com.myapplication.core.network.AlumnApi
+import com.myapplication.core.network.AttendanceApi
 import com.myapplication.core.network.AuthApi
 import com.myapplication.core.network.AuthInterceptor
 import com.myapplication.core.network.TeacherApi
@@ -61,4 +62,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideTeacherApi(retrofit: Retrofit): TeacherApi = retrofit.create(TeacherApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAttendanceApi(retrofit: Retrofit): AttendanceApi = retrofit.create(AttendanceApi::class.java)
 }
