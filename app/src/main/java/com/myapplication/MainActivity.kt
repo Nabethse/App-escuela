@@ -1,41 +1,47 @@
 package com.myapplication
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.myapplication.core.util.BiometricAuthenticator
 import com.myapplication.features.alumn.presentation.screens.AlumnsScreen
 import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModel
 import com.myapplication.features.auth.presentation.screens.LoginScreen
 import com.myapplication.features.auth.presentation.screens.RegisterScreen
 import com.myapplication.features.auth.presentation.viewmodel.AuthState
 import com.myapplication.features.auth.presentation.viewmodel.AuthViewModel
+import com.myapplication.features.attendance.presentation.screens.AttendanceScreen
+import com.myapplication.features.attendance.presentation.viewmodel.AttendanceViewModel
 import com.myapplication.features.home.presentation.screens.HomeScreen
 import com.myapplication.features.teacher.presentation.screens.TeachersScreen
 import com.myapplication.features.teacher.presentation.viewmodel.TeacherViewModel
 import com.myapplication.ui.theme.InventarioAPPTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
-class MainActivity : ComponentActivity() {
+@AndroidEntryPoint
+class MainActivity : AppCompatActivity() {
+
+    @Inject
+    lateinit var biometricAuthenticator: BiometricAuthenticator
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             InventarioAPPTheme {
                 val navController = rememberNavController()
-                val appContainer = (application as EscuelaApp).container
                 
-                // Usando el método Factory del appContainer
-                val authViewModel: AuthViewModel = viewModel(
-                    factory = appContainer.authViewModelFactory
-                )
+                val authViewModel: AuthViewModel = hiltViewModel()
                 val authState by authViewModel.authState.collectAsState()
-                
-                val token = (authState as? AuthState.Success)?.token ?: ""
+                val isBiometricEnabled by authViewModel.isBiometricEnabled.collectAsState()
 
                 LaunchedEffect(authState) {
                     if (authState is AuthState.Success) {
@@ -49,11 +55,36 @@ class MainActivity : ComponentActivity() {
                     composable("login") {
                         LoginScreen(
                             authState = authState,
+                            isBiometricEnabled = isBiometricEnabled,
                             onLogin = { email, password ->
                                 authViewModel.login(email, password)
                             },
                             onNavigateToRegister = {
+                                authViewModel.resetState()
                                 navController.navigate("register")
+                            },
+                            onBiometricLogin = {
+                                if (biometricAuthenticator.isBiometricAvailable()) {
+                                    biometricAuthenticator.promptBiometric(
+                                        activity = this@MainActivity,
+                                        title = "Inicio de Sesión Biométrico",
+                                        subtitle = "Usa tu huella digital o PIN para entrar",
+                                        onSuccess = {
+                                            authViewModel.loginWithBiometrics()
+                                        },
+                                        onError = { _, err ->
+                                            Toast.makeText(this@MainActivity, "Error: $err", Toast.LENGTH_SHORT).show()
+                                        },
+                                        onFailed = {
+                                            Toast.makeText(this@MainActivity, "Autenticación fallida", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                } else {
+                                    Toast.makeText(this@MainActivity, "Biometría no disponible en este dispositivo", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onToggleBiometric = { enabled ->
+                                authViewModel.setBiometricEnabled(enabled)
                             }
                         )
                     }
@@ -64,6 +95,7 @@ class MainActivity : ComponentActivity() {
                                 authViewModel.register(name, email, password)
                             },
                             onNavigateBack = {
+                                authViewModel.resetState()
                                 navController.popBackStack()
                             }
                         )
@@ -72,24 +104,27 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             onNavigateToTeachers = { navController.navigate("teachers") },
                             onNavigateToAlumns = { navController.navigate("alumns") },
+                            onNavigateToAttendance = { navController.navigate("attendance") },
                             onLogout = { 
+                                authViewModel.logout()
                                 navController.navigate("login") {
                                     popUpTo("home") { inclusive = true }
                                 }
                             }
                         )
                     }
+                    composable("attendance") {
+                        val attendanceViewModel: AttendanceViewModel = hiltViewModel()
+                        AttendanceScreen(viewModel = attendanceViewModel, onNavigateBack = { navController.popBackStack() })
+                    }
                     composable("teachers") {
-                        val teacherViewModel: TeacherViewModel = viewModel(
-                            factory = appContainer.teacherViewModelFactory
-                        )
+                        val teacherViewModel: TeacherViewModel = hiltViewModel()
+                        val token = (authState as? AuthState.Success)?.token ?: ""
                         TeachersScreen(viewModel = teacherViewModel, token = token)
                     }
                     composable("alumns") {
-                        val alumnViewModel: AlumnViewModel = viewModel(
-                            factory = appContainer.alumnViewModelFactory
-                        )
-                        AlumnsScreen(viewModel = alumnViewModel, token = token)
+                        val alumnViewModel: AlumnViewModel = hiltViewModel()
+                        AlumnsScreen(viewModel = alumnViewModel)
                     }
                 }
             }

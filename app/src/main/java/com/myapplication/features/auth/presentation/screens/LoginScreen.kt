@@ -1,6 +1,8 @@
 package com.myapplication.features.auth.presentation.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,8 +15,11 @@ import com.myapplication.features.auth.presentation.viewmodel.AuthState
 @Composable
 fun LoginScreen(
     authState: AuthState,
+    isBiometricEnabled: Boolean,
     onLogin: (String, String) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onBiometricLogin: () -> Unit,
+    onToggleBiometric: (Boolean) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -45,6 +50,20 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Usar huella para entrar")
+            Switch(
+                checked = isBiometricEnabled,
+                onCheckedChange = onToggleBiometric
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
         if (authState is AuthState.Loading) {
             CircularProgressIndicator()
         } else {
@@ -54,6 +73,20 @@ fun LoginScreen(
             ) {
                 Text("Entrar")
             }
+            
+            if (isBiometricEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                OutlinedButton(
+                    onClick = onBiometricLogin,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Fingerprint, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Ingresar con Huella")
+                }
+            }
+
             TextButton(onClick = onNavigateToRegister) {
                 Text("¿No tienes cuenta? Regístrate")
             }

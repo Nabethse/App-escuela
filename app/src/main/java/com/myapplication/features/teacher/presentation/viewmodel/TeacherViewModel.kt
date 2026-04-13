@@ -1,41 +1,58 @@
 package com.myapplication.features.teacher.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.myapplication.features.teacher.data.datasource.remote.model.TeacherDto
+import com.myapplication.features.teacher.domain.repositories.TeacherRepository
 import com.myapplication.features.teacher.domain.usecases.*
 import com.myapplication.features.teacher.presentation.screens.TeacherUiModel
 import com.myapplication.features.teacher.presentation.screens.TeacherUiState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class TeacherViewModel(
+@HiltViewModel
+class TeacherViewModel @Inject constructor(
     private val getTeachersUseCase: GetTeachersUseCase,
     private val createTeacherUseCase: CreateTeacherUseCase,
     private val updateTeacherUseCase: UpdateTeacherUseCase,
-    private val deleteTeacherUseCase: DeleteTeacherUseCase
+    private val deleteTeacherUseCase: DeleteTeacherUseCase,
+    private val teacherRepository: TeacherRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TeacherUiState>(TeacherUiState.Loading)
     val uiState: StateFlow<TeacherUiState> = _uiState
 
-    fun getTeachers(token: String) {
+    init {
+        observeTeachers()
+    }
+
+    private fun observeTeachers() {
         viewModelScope.launch {
-            _uiState.value = TeacherUiState.Loading
-            try {
-                val teachers = getTeachersUseCase(token)
-                val uiTeachers = teachers?.map { dto ->
+            teacherRepository.allTeachers.collectLatest { teachers ->
+                val uiTeachers = teachers.map { dto ->
                     TeacherUiModel(
                         id = dto.id,
                         name = dto.name,
                         asignature = dto.asignature
                     )
-                } ?: emptyList()
+                }
                 _uiState.value = TeacherUiState.Success(uiTeachers)
+            }
+        }
+    }
+
+    fun getTeachers(token: String) {
+        viewModelScope.launch {
+            try {
+                getTeachersUseCase(token)
             } catch (e: Exception) {
-                _uiState.value = TeacherUiState.Error(e.message ?: "Error al cargar profesores")
+                if (_uiState.value !is TeacherUiState.Success) {
+                    _uiState.value = TeacherUiState.Error(e.message ?: "Error al cargar profesores")
+                }
             }
         }
     }
@@ -44,9 +61,8 @@ class TeacherViewModel(
         viewModelScope.launch {
             try {
                 createTeacherUseCase(token, TeacherDto(name = name, asignature = asignature))
-                getTeachers(token) // Refresh list
             } catch (e: Exception) {
-                // Manejar error
+                // Handle error
             }
         }
     }
@@ -55,7 +71,6 @@ class TeacherViewModel(
         viewModelScope.launch {
             try {
                 updateTeacherUseCase(token, id, TeacherDto(name = name, asignature = asignature))
-                getTeachers(token)
             } catch (e: Exception) {
                 // Handle error
             }
@@ -66,30 +81,9 @@ class TeacherViewModel(
         viewModelScope.launch {
             try {
                 deleteTeacherUseCase(token, id)
-                getTeachers(token) // Refresh list
             } catch (e: Exception) {
-                // Manejar error
+                // Handle error
             }
         }
-    }
-}
-
-class TeacherViewModelFactory(
-    private val getTeachersUseCase: GetTeachersUseCase,
-    private val createTeacherUseCase: CreateTeacherUseCase,
-    private val updateTeacherUseCase: UpdateTeacherUseCase,
-    private val deleteTeacherUseCase: DeleteTeacherUseCase
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(TeacherViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return TeacherViewModel(
-                getTeachersUseCase,
-                createTeacherUseCase,
-                updateTeacherUseCase,
-                deleteTeacherUseCase
-            ) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

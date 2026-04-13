@@ -4,7 +4,8 @@ data class AlumnUiModel(
     val id: Int?,
     val name: String,
     val matricula: String,
-    val email: String?
+    val email: String?,
+    val photoPath: String? = null
 )
 
 sealed interface AlumnUiState {
