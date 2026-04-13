@@ -5,9 +5,10 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "alumns")
 data class AlumnEntity(
-    @PrimaryKey val id: Int,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val matricula: String,
-    val email: String?,
-    val imageUrl: String? = null
+    val email: String? = null,
+    val imageUrl: String? = null,
+    val photoPath: String? = null
 )

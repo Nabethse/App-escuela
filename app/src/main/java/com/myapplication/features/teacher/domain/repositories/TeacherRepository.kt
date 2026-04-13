@@ -1,8 +1,10 @@
 package com.myapplication.features.teacher.domain.repositories
 
 import com.myapplication.features.teacher.data.datasource.remote.model.TeacherDto
+import kotlinx.coroutines.flow.Flow
 
 interface TeacherRepository {
+    val allTeachers: Flow<List<TeacherDto>>
     suspend fun getTeachers(token: String): List<TeacherDto>?
     suspend fun getTeacher(token: String, id: Int): TeacherDto?
     suspend fun createTeacher(token: String, teacher: TeacherDto): TeacherDto?

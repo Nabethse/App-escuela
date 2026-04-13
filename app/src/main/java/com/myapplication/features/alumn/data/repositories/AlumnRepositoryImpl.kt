@@ -62,13 +62,15 @@ class AlumnRepositoryImpl @Inject constructor(
         id = id ?: 0,
         name = name,
         matricula = matricula,
-        email = email
+        email = email,
+        photoPath = photoPath
     )
 
     private fun AlumnEntity.toDto() = AlumnDto(
         id = id,
         name = name,
         matricula = matricula,
-        email = email
+        email = email,
+        photoPath = photoPath
     )
 }

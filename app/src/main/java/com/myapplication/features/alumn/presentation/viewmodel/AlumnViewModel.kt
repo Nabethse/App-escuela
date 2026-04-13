@@ -3,6 +3,7 @@ package com.myapplication.features.alumn.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myapplication.core.util.LocationHelper
+import com.myapplication.features.attendance.domain.repositories.AttendanceRepository
 import com.myapplication.features.alumn.data.datasource.remote.model.AlumnDto
 import com.myapplication.features.alumn.data.repositories.AlumnRepositoryImpl
 import com.myapplication.features.alumn.domain.repositories.AlumnRepository
@@ -23,6 +24,7 @@ class AlumnViewModel @Inject constructor(
     private val updateAlumnUseCase: UpdateAlumnUseCase,
     private val deleteAlumnUseCase: DeleteAlumnUseCase,
     private val alumnRepository: AlumnRepository,
+    private val attendanceRepository: AttendanceRepository,
     private val locationHelper: LocationHelper
 ) : ViewModel() {
 
@@ -42,7 +44,8 @@ class AlumnViewModel @Inject constructor(
                         id = dto.id,
                         name = dto.name,
                         matricula = dto.matricula,
-                        email = dto.email
+                        email = dto.email,
+                        photoPath = dto.photoPath
                     )
                 }
                 _uiState.value = AlumnUiState.Success(uiAlumns)
@@ -89,13 +92,41 @@ class AlumnViewModel @Inject constructor(
         }
     }
 
-    fun checkInLocation() {
+    fun updateAlumnPhoto(id: Int, photoPath: String) {
+        viewModelScope.launch {
+            try {
+                val currentAlumn = (uiState.value as? AlumnUiState.Success)?.alumns?.find { it.id == id }
+                if (currentAlumn != null) {
+                    updateAlumnUseCase("", id, AlumnDto(
+                        name = currentAlumn.name,
+                        matricula = currentAlumn.matricula,
+                        email = currentAlumn.email,
+                        photoPath = photoPath
+                    ))
+                    refreshAlumns()
+                }
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    fun checkInLocation(alumnId: Int, alumnName: String) {
         viewModelScope.launch {
             val location = locationHelper.getCurrentLocation()
             if (location != null) {
                 val isInSchool = locationHelper.isLocationInSchool(location)
                 if (isInSchool) {
-                    // Aquí podrías llamar a un caso de uso para registrar la asistencia
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                    val currentDate = sdf.format(java.util.Date())
+                    
+                    val attendance = com.myapplication.features.attendance.data.datasource.local.entity.AttendanceEntity(
+                        alumnId = alumnId,
+                        alumnName = alumnName,
+                        date = currentDate,
+                        latitude = location.latitude,
+                        longitude = location.longitude
+                    )
+                    attendanceRepository.saveAttendance(attendance)
                 }
             }
         }

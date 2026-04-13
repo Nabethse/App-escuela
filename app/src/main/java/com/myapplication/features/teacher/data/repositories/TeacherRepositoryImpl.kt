@@ -1,17 +1,36 @@
 package com.myapplication.features.teacher.data.repositories
 
 import com.myapplication.core.network.TeacherApi
+import com.myapplication.features.teacher.data.datasource.local.dao.TeacherDao
+import com.myapplication.features.teacher.data.datasource.local.entity.TeacherEntity
 import com.myapplication.features.teacher.data.datasource.remote.model.TeacherDto
 import com.myapplication.features.teacher.domain.repositories.TeacherRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TeacherRepositoryImpl @Inject constructor(
-    private val teacherApi: TeacherApi
+    private val teacherApi: TeacherApi,
+    private val teacherDao: TeacherDao
 ) : TeacherRepository {
+
+    override val allTeachers: Flow<List<TeacherDto>> = teacherDao.getAllTeachers().map { entities ->
+        entities.map { it.toDto() }
+    }
+
     override suspend fun getTeachers(token: String): List<TeacherDto>? {
-        return teacherApi.getTeachers(token)
+        return try {
+            val remoteTeachers = teacherApi.getTeachers(token)
+            if (remoteTeachers != null) {
+                teacherDao.deleteAllTeachers()
+                teacherDao.insertTeachers(remoteTeachers.map { it.toEntity() })
+            }
+            remoteTeachers
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override suspend fun getTeacher(token: String, id: Int): TeacherDto? {
@@ -19,14 +38,35 @@ class TeacherRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createTeacher(token: String, teacher: TeacherDto): TeacherDto? {
-        return teacherApi.createTeacher(token, teacher)
+        val created = teacherApi.createTeacher(token, teacher)
+        if (created != null) {
+            teacherDao.insertTeacher(created.toEntity())
+        }
+        return created
     }
 
     override suspend fun updateTeacher(token: String, id: Int, teacher: TeacherDto): TeacherDto? {
-        return teacherApi.updateTeacher(token, id, teacher)
+        val updated = teacherApi.updateTeacher(token, id, teacher)
+        if (updated != null) {
+            teacherDao.insertTeacher(updated.toEntity())
+        }
+        return updated
     }
 
     override suspend fun deleteTeacher(token: String, id: Int) {
         teacherApi.deleteTeacher(token, id)
+        teacherDao.getTeacherById(id)?.let { teacherDao.deleteTeacher(it) }
     }
+
+    private fun TeacherDto.toEntity() = TeacherEntity(
+        id = id ?: 0,
+        name = name,
+        asignature = asignature
+    )
+
+    private fun TeacherEntity.toDto() = TeacherDto(
+        id = id,
+        name = name,
+        asignature = asignature
+    )
 }
