@@ -2,6 +2,7 @@ package com.myapplication.features.auth.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.messaging.FirebaseMessaging
 import com.myapplication.core.data.UserPreferencesRepository
 import com.myapplication.core.util.FlashManager
 import com.myapplication.features.auth.data.datasource.remote.model.LoginRequest
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow as FlowStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import retrofit2.HttpException
 import javax.inject.Inject
 
@@ -47,6 +49,7 @@ class AuthViewModel @Inject constructor(
                 val response = loginUseCase(LoginRequest(email, password))
                 if (!response.token.isNullOrBlank()) {
                     flashManager.triggerFlash()
+                    updateFcmTokenOnServer(response.token)
                     _authState.value = AuthState.Success(response.token)
                 } else {
                     _authState.value = AuthState.Error(response.message ?: "Error al iniciar sesión")
@@ -76,6 +79,7 @@ class AuthViewModel @Inject constructor(
                 val response = registerUseCase(RegisterRequest(name, email, password))
                 if (!response.token.isNullOrBlank()) {
                     flashManager.triggerFlash()
+                    updateFcmTokenOnServer(response.token)
                     _authState.value = AuthState.Success(response.token)
                 } else if (response.message != null) {
                     _authState.value = AuthState.RegisterSuccess(response.message)
@@ -102,12 +106,25 @@ class AuthViewModel @Inject constructor(
                 val token = userPreferencesRepository.userToken.first()
                 if (!token.isNullOrBlank()) {
                     flashManager.triggerFlash()
+                    updateFcmTokenOnServer(token)
                     _authState.value = AuthState.Success(token)
                 } else {
                     _authState.value = AuthState.Error("No hay una sesión activa. Por favor, inicia sesión con tu correo.")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error al recuperar la sesión: ${e.message}")
+            }
+        }
+    }
+
+    private fun updateFcmTokenOnServer(authToken: String) {
+        viewModelScope.launch {
+            try {
+                val fcmToken = FirebaseMessaging.getInstance().token.await()
+                authRepository.updateFcmToken("Bearer $authToken", fcmToken)
+            } catch (e: Exception) {
+                // Silently fail or log, FCM token update is not critical for login
+                e.printStackTrace()
             }
         }
     }

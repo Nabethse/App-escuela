@@ -21,4 +21,12 @@ interface AuthApi {
 
     @GET("auth/me")
     suspend fun getMe(@Header("Authorization") token: String): UserDto
+
+    @POST("auth/fcm-token")
+    suspend fun updateFcmToken(
+        @Header("Authorization") token: String,
+        @Body fcmTokenRequest: FcmTokenRequest
+    )
 }
+
+data class FcmTokenRequest(val fcmToken: String)

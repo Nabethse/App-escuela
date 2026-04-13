@@ -2,6 +2,7 @@ package com.myapplication.features.auth.data.repositories
 
 import com.myapplication.core.data.UserPreferencesRepository
 import com.myapplication.core.network.AuthApi
+import com.myapplication.core.network.FcmTokenRequest
 import com.myapplication.features.auth.data.datasource.remote.model.AuthResponse
 import com.myapplication.features.auth.data.datasource.remote.model.LoginRequest
 import com.myapplication.features.auth.data.datasource.remote.model.RegisterRequest
@@ -32,5 +33,9 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun logout() {
         userPreferencesRepository.clearToken()
+    }
+
+    override suspend fun updateFcmToken(token: String, fcmToken: String) {
+        authApi.updateFcmToken(token, FcmTokenRequest(fcmToken))
     }
 }
