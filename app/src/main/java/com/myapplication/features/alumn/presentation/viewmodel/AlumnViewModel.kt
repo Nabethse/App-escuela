@@ -14,6 +14,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,14 +34,21 @@ class AlumnViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<AlumnUiState>(AlumnUiState.Loading)
     val uiState: StateFlow<AlumnUiState> = _uiState
 
+    private val _eventFlow = MutableSharedFlow<AlumnEvent>()
+    val eventFlow: SharedFlow<AlumnEvent> = _eventFlow.asSharedFlow()
+
+    sealed class AlumnEvent {
+        data class ShowToast(val message: String) : AlumnEvent()
+        object SuccessVibration : AlumnEvent()
+    }
+
     init {
         observeAlumns()
-        refreshAlumns()
     }
 
     private fun observeAlumns() {
         viewModelScope.launch {
-            (alumnRepository as? AlumnRepositoryImpl)?.allAlumns?.collectLatest { alumns ->
+            alumnRepository.allAlumns.collectLatest { alumns ->
                 val uiAlumns = alumns.map { dto ->
                     AlumnUiModel(
                         id = dto.id,
@@ -53,57 +63,90 @@ class AlumnViewModel @Inject constructor(
         }
     }
 
-    fun refreshAlumns() {
+    fun refreshAlumns(token: String) {
         viewModelScope.launch {
             try {
-                getAlumnsUseCase("")
+                val finalToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                getAlumnsUseCase(finalToken)
             } catch (e: Exception) {
             }
         }
     }
 
-    fun createAlumn(name: String, matricula: String) {
+    fun createAlumn(token: String, name: String, matricula: String) {
         viewModelScope.launch {
             try {
-                createAlumnUseCase("", AlumnDto(name = name, matricula = matricula))
-                refreshAlumns()
+                val finalToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                
+                // 1. Actualización manual inmediata del UI State (Optimistic UI)
+                val currentState = _uiState.value
+                if (currentState is AlumnUiState.Success) {
+                    val newList = currentState.alumns.toMutableList()
+                    newList.add(0, AlumnUiModel(id = 0, name = name, matricula = matricula, email = ""))
+                    _uiState.value = AlumnUiState.Success(newList)
+                }
+
+                _eventFlow.emit(AlumnEvent.ShowToast("Alumno agregado correctamente"))
+                _eventFlow.emit(AlumnEvent.SuccessVibration)
+                
+                // 2. Ejecutar creación (Room notificará el flujo y reemplazará el optimista con el real)
+                createAlumnUseCase(finalToken, AlumnDto(name = name, matricula = matricula))
             } catch (e: Exception) {
+                _eventFlow.emit(AlumnEvent.ShowToast("Nota: Se guardó localmente"))
+                _eventFlow.emit(AlumnEvent.SuccessVibration)
             }
         }
     }
 
-    fun updateAlumn(id: Int, name: String, matricula: String) {
+    fun updateAlumn(token: String, id: Int, name: String, matricula: String) {
         viewModelScope.launch {
             try {
-                updateAlumnUseCase("", id, AlumnDto(name = name, matricula = matricula))
-                refreshAlumns()
+                val finalToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                
+                // 1. Actualización optimista
+                val currentState = _uiState.value
+                if (currentState is AlumnUiState.Success) {
+                    val newList = currentState.alumns.map {
+                        if (it.id == id) it.copy(name = name, matricula = matricula) else it
+                    }
+                    _uiState.value = AlumnUiState.Success(newList)
+                }
+
+                _eventFlow.emit(AlumnEvent.ShowToast("Alumno actualizado correctamente"))
+                
+                updateAlumnUseCase(finalToken, id, AlumnDto(name = name, matricula = matricula))
             } catch (e: Exception) {
+                _eventFlow.emit(AlumnEvent.ShowToast("Nota: Actualizado localmente"))
             }
         }
     }
 
-    fun deleteAlumn(id: Int) {
+    fun deleteAlumn(token: String, id: Int) {
         viewModelScope.launch {
             try {
-                deleteAlumnUseCase("", id)
-                refreshAlumns()
+                val finalToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                deleteAlumnUseCase(finalToken, id)
+                _eventFlow.emit(AlumnEvent.ShowToast("Alumno eliminado correctamente"))
+                refreshAlumns(finalToken)
             } catch (e: Exception) {
+                _eventFlow.emit(AlumnEvent.ShowToast("Error al eliminar alumno"))
             }
         }
     }
 
-    fun updateAlumnPhoto(id: Int, photoPath: String) {
+    fun updateAlumnPhoto(token: String, id: Int, photoPath: String) {
         viewModelScope.launch {
             try {
+                val finalToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
                 val currentAlumn = (uiState.value as? AlumnUiState.Success)?.alumns?.find { it.id == id }
                 if (currentAlumn != null) {
-                    updateAlumnUseCase("", id, AlumnDto(
+                    updateAlumnUseCase(finalToken, id, AlumnDto(
                         name = currentAlumn.name,
                         matricula = currentAlumn.matricula,
                         email = currentAlumn.email,
                         photoPath = photoPath
                     ))
-                    refreshAlumns()
+                    refreshAlumns(finalToken)
                 }
             } catch (e: Exception) {
             }

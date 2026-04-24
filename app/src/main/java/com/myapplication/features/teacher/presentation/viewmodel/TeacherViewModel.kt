@@ -11,6 +11,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,6 +28,14 @@ class TeacherViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<TeacherUiState>(TeacherUiState.Loading)
     val uiState: StateFlow<TeacherUiState> = _uiState
+
+    private val _eventFlow = MutableSharedFlow<TeacherEvent>()
+    val eventFlow: SharedFlow<TeacherEvent> = _eventFlow.asSharedFlow()
+
+    sealed class TeacherEvent {
+        data class ShowToast(val message: String) : TeacherEvent()
+        object SuccessVibration : TeacherEvent()
+    }
 
     init {
         observeTeachers()
@@ -60,9 +71,14 @@ class TeacherViewModel @Inject constructor(
     fun createTeacher(token: String, name: String, asignature: String) {
         viewModelScope.launch {
             try {
+                // Feedback instantáneo
+                _eventFlow.emit(TeacherEvent.ShowToast("Profesor agregado correctamente"))
+                _eventFlow.emit(TeacherEvent.SuccessVibration)
+                
                 createTeacherUseCase(token, TeacherDto(name = name, asignature = asignature))
             } catch (e: Exception) {
-                // Handle error
+                _eventFlow.emit(TeacherEvent.ShowToast("Guardado localmente"))
+                _eventFlow.emit(TeacherEvent.SuccessVibration)
             }
         }
     }
@@ -70,9 +86,11 @@ class TeacherViewModel @Inject constructor(
     fun updateTeacher(token: String, id: Int, name: String, asignature: String) {
         viewModelScope.launch {
             try {
+                _eventFlow.emit(TeacherEvent.ShowToast("Profesor actualizado correctamente"))
+                
                 updateTeacherUseCase(token, id, TeacherDto(name = name, asignature = asignature))
             } catch (e: Exception) {
-                // Handle error
+                _eventFlow.emit(TeacherEvent.ShowToast("Actualizado localmente"))
             }
         }
     }
@@ -81,8 +99,9 @@ class TeacherViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteTeacherUseCase(token, id)
+                _eventFlow.emit(TeacherEvent.ShowToast("Profesor eliminado correctamente"))
             } catch (e: Exception) {
-                // Handle error
+                _eventFlow.emit(TeacherEvent.ShowToast("Error al eliminar profesor"))
             }
         }
     }

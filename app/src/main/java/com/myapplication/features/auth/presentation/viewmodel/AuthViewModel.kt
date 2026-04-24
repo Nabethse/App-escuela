@@ -48,6 +48,7 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = loginUseCase(LoginRequest(email, password))
                 if (!response.token.isNullOrBlank()) {
+                    userPreferencesRepository.saveToken(response.token) // <--- Guardamos el token para uso biométrico
                     flashManager.triggerFlash()
                     updateFcmTokenOnServer(response.token)
                     _authState.value = AuthState.Success(response.token)
@@ -77,24 +78,26 @@ class AuthViewModel @Inject constructor(
             _authState.value = AuthState.Loading
             try {
                 val response = registerUseCase(RegisterRequest(name, email, password))
+                
                 if (!response.token.isNullOrBlank()) {
+                    // Caso 1: El servidor registra e inicia sesión (devuelve token)
                     flashManager.triggerFlash()
                     updateFcmTokenOnServer(response.token)
                     _authState.value = AuthState.Success(response.token)
-                } else if (response.message != null) {
-                    _authState.value = AuthState.RegisterSuccess(response.message)
                 } else {
-                    _authState.value = AuthState.Error("Error en el registro")
+                    // Caso 2: El servidor solo registra (devuelve mensaje pero no token)
+                    val successMsg = response.message ?: "¡Registro exitoso! Por favor, inicia sesión."
+                    _authState.value = AuthState.RegisterSuccess(successMsg)
                 }
             } catch (e: HttpException) {
                 val errorMsg = when (e.code()) {
                     400 -> "Datos de registro inválidos"
-                    409 -> "el correo ya está registrado"
-                    else -> "Error del servidor: ${e.code()}"
+                    409 -> "Este correo ya está registrado"
+                    else -> "Error del servidor (${e.code()})"
                 }
                 _authState.value = AuthState.Error(errorMsg)
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error de red: ${e.message}")
+                _authState.value = AuthState.Error("Error de conexión: ${e.localizedMessage}")
             }
         }
     }

@@ -70,5 +70,34 @@ fun RegisterScreen(
         if (authState is AuthState.Error) {
             Text(text = authState.message, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
         }
+
+        if (authState is AuthState.RegisterSuccess) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "¡Registro exitoso!",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "Por favor, inicie sesión con su nueva cuenta.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = onNavigateBack) {
+                        Text("Ir al Login")
+                    }
+                }
+            }
+        }
     }
 }

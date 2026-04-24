@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.sp
 fun HomeScreen(
     onNavigateToTeachers: () -> Unit,
     onNavigateToAlumns: () -> Unit,
-    onNavigateToAttendance: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -86,13 +85,6 @@ fun HomeScreen(
                     onClick = onNavigateToAlumns
                 )
                 
-                HomeCard(
-                    title = "Asistencia",
-                    subtitle = "Registro GPS y seguimiento",
-                    icon = Icons.AutoMirrored.Filled.FactCheck,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    onClick = onNavigateToAttendance
-                )
                 
                 Spacer(modifier = Modifier.weight(1f))
                 

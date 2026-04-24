@@ -11,6 +11,7 @@ import com.myapplication.features.teacher.domain.repositories.TeacherRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
+//se ejecuta  en segundo plano cada 15 minutos
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
     @Assisted appContext: Context,

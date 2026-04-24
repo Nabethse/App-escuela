@@ -122,7 +122,6 @@ class MainActivity : AppCompatActivity() {
                         HomeScreen(
                             onNavigateToTeachers = { navController.navigate("teachers") },
                             onNavigateToAlumns = { navController.navigate("alumns") },
-                            onNavigateToAttendance = { navController.navigate("attendance") },
                             onLogout = { 
                                 authViewModel.logout()
                                 navController.navigate("login") {
@@ -131,10 +130,6 @@ class MainActivity : AppCompatActivity() {
                             }
                         )
                     }
-                    composable("attendance") {
-                        val attendanceViewModel: AttendanceViewModel = hiltViewModel()
-                        AttendanceScreen(viewModel = attendanceViewModel, onNavigateBack = { navController.popBackStack() })
-                    }
                     composable("teachers") {
                         val teacherViewModel: TeacherViewModel = hiltViewModel()
                         val token = (authState as? AuthState.Success)?.token ?: ""
@@ -142,7 +137,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     composable("alumns") {
                         val alumnViewModel: AlumnViewModel = hiltViewModel()
-                        AlumnsScreen(viewModel = alumnViewModel)
+                        val token = (authState as? AuthState.Success)?.token ?: ""
+                        AlumnsScreen(viewModel = alumnViewModel, token = token)
                     }
                 }
             }

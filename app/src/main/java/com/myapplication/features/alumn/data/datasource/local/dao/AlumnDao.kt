@@ -3,7 +3,7 @@ package com.myapplication.features.alumn.data.datasource.local.dao
 import androidx.room.*
 import com.myapplication.features.alumn.data.datasource.local.entity.AlumnEntity
 import kotlinx.coroutines.flow.Flow
-
+//implementacion de room
 @Dao
 interface AlumnDao {
     @Query("SELECT * FROM alumns")
