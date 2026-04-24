@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,12 +18,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import com.myapplication.core.util.ShakeDetector
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.myapplication.features.alumn.presentation.components.AlumnCard
 import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModel
+import kotlinx.coroutines.flow.collectLatest
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,7 +38,8 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlumnsScreen(
-    viewModel: AlumnViewModel
+    viewModel: AlumnViewModel,
+    token: String
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -46,14 +50,37 @@ fun AlumnsScreen(
     var photoUri by remember { mutableStateOf<Uri?>(null) }
     var currentAlumnIdForPhoto by remember { mutableStateOf<Int?>(null) }
     
+    LaunchedEffect(Unit) {
+        viewModel.refreshAlumns(token)
+    }
+    
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && currentAlumnIdForPhoto != null) {
             photoUri?.let { uri ->
-                viewModel.updateAlumnPhoto(currentAlumnIdForPhoto!!, uri.toString())
+                viewModel.updateAlumnPhoto(token, currentAlumnIdForPhoto!!, uri.toString())
             }
             Toast.makeText(context, "Foto guardada correctamente", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(viewModel.eventFlow) {
+        viewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                is AlumnViewModel.AlumnEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+                is AlumnViewModel.AlumnEvent.SuccessVibration -> {
+                    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(200)
+                    }
+                }
+            }
         }
     }
 
@@ -66,22 +93,6 @@ fun AlumnsScreen(
             cameraLauncher.launch(uri)
         } else {
             Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // Ubicación logic
-    var pendingAlumnCheckIn by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val granted = permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
-                      permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)
-        if (granted) {
-            pendingAlumnCheckIn?.let { (id, name) ->
-                viewModel.checkInLocation(id, name)
-            }
-        } else {
-            Toast.makeText(context, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -133,7 +144,7 @@ fun AlumnsScreen(
                                 AlumnCard(
                                     alumn = alumn,
                                     onEdit = { editingAlumn = it },
-                                    onDelete = { id -> viewModel.deleteAlumn(id) },
+                                    onDelete = { id -> viewModel.deleteAlumn(token, id) },
                                     onCapturePhoto = { 
                                         currentAlumnIdForPhoto = alumn.id
                                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
@@ -142,16 +153,6 @@ fun AlumnsScreen(
                                             cameraLauncher.launch(uri)
                                         } else {
                                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                        }
-                                    },
-                                    onCheckIn = { id ->
-                                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                                            viewModel.checkInLocation(id, alumn.name)
-                                        } else {
-                                            pendingAlumnCheckIn = id to alumn.name
-                                            locationPermissionLauncher.launch(
-                                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                                            )
                                         }
                                     }
                                 )
@@ -174,20 +175,33 @@ fun AlumnsScreen(
                 title = "Agregar Alumno",
                 onDismiss = { showAddDialog = false },
                 onConfirm = { name, matricula ->
-                    viewModel.createAlumn(name, matricula)
+                    viewModel.createAlumn(token, name, matricula)
                     showAddDialog = false
                 }
             )
         }
 
         editingAlumn?.let { alumn ->
+            // Shake detector para deshacer cambios
+            val shakeDetector = remember {
+                ShakeDetector(context) {
+                    editingAlumn = null
+                    Toast.makeText(context, "Cambios descartados (Shake)", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            DisposableEffect(Unit) {
+                shakeDetector.start()
+                onDispose { shakeDetector.stop() }
+            }
+
             AlumnDialog(
                 title = "Editar Alumno",
                 initialName = alumn.name,
                 initialMatricula = alumn.matricula,
                 onDismiss = { editingAlumn = null },
                 onConfirm = { name, matricula ->
-                    alumn.id?.let { viewModel.updateAlumn(it, name, matricula) }
+                    alumn.id?.let { viewModel.updateAlumn(token, it, name, matricula) }
                     editingAlumn = null
                 }
             )

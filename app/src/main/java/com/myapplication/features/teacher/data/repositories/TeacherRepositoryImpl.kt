@@ -38,19 +38,37 @@ class TeacherRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createTeacher(token: String, teacher: TeacherDto): TeacherDto? {
-        val created = teacherApi.createTeacher(token, teacher)
-        if (created != null) {
-            teacherDao.insertTeacher(created.toEntity())
+        val created = try {
+            teacherApi.createTeacher(token, teacher)
+        } catch (e: Exception) {
+            null
         }
-        return created
+        
+        val entityToSave = if (created != null) {
+            created.toEntity()
+        } else {
+            teacher.toEntity().copy(id = 0)
+        }
+        
+        teacherDao.insertTeacher(entityToSave)
+        return created ?: teacher
     }
 
     override suspend fun updateTeacher(token: String, id: Int, teacher: TeacherDto): TeacherDto? {
-        val updated = teacherApi.updateTeacher(token, id, teacher)
-        if (updated != null) {
-            teacherDao.insertTeacher(updated.toEntity())
+        val updated = try {
+            teacherApi.updateTeacher(token, id, teacher)
+        } catch (e: Exception) {
+            null
         }
-        return updated
+
+        val entityToSave = if (updated != null) {
+            updated.toEntity()
+        } else {
+            teacher.toEntity().copy(id = id)
+        }
+        
+        teacherDao.insertTeacher(entityToSave)
+        return updated ?: teacher
     }
 
     override suspend fun deleteTeacher(token: String, id: Int) {

@@ -41,15 +41,38 @@ class AlumnRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createAlumn(token: String, alumn: AlumnDto): AlumnDto? {
-        return alumnApi.createAlumn(token, alumn)
+        val created = try {
+            alumnApi.createAlumn(token, alumn)
+        } catch (e: Exception) {
+            null
+        }
+        
+        // Instant feedback: if server fails or is offline, we still save it locally with a temporary ID
+        val entityToSave = if (created != null) {
+            created.toEntity()
+        } else {
+            alumn.toEntity().copy(id = 0) // Room will generate an ID
+        }
+        
+        alumnDao.insertAlumn(entityToSave)
+        return created ?: alumn // Return at least the local one so UI thinks it worked
     }
 
     override suspend fun updateAlumn(token: String, id: Int, alumn: AlumnDto): AlumnDto? {
-        val updated = alumnApi.updateAlumn(token, id, alumn)
-        if (updated != null) {
-            alumnDao.insertAlumn(updated.toEntity())
+        val updated = try {
+            alumnApi.updateAlumn(token, id, alumn)
+        } catch (e: Exception) {
+            null
         }
-        return updated
+
+        val entityToSave = if (updated != null) {
+            updated.toEntity()
+        } else {
+            alumn.toEntity().copy(id = id)
+        }
+        
+        alumnDao.insertAlumn(entityToSave)
+        return updated ?: alumn
     }
 
     override suspend fun deleteAlumn(token: String, id: Int) {

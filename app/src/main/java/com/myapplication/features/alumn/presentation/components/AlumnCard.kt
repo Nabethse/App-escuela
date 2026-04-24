@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.myapplication.core.util.ImageUtils
 import com.myapplication.features.alumn.presentation.screens.AlumnUiModel
 
 @Composable
@@ -30,7 +31,6 @@ fun AlumnCard(
     onEdit: (AlumnUiModel) -> Unit,
     onDelete: (Int) -> Unit,
     onCapturePhoto: (Int) -> Unit,
-    onCheckIn: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     ElevatedCard(
@@ -61,7 +61,7 @@ fun AlumnCard(
                     if (alumn.photoPath != null) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(alumn.photoPath)
+                                .data(ImageUtils.buildPhotoUrl("https://tu-api-aws.com", alumn.photoPath))
                                 .crossfade(true)
                                 .build(),
                             contentDescription = "Foto de ${alumn.name}",
@@ -115,19 +115,6 @@ fun AlumnCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(
-                    onClick = { alumn.id?.let { onCheckIn(it) } },
-                    modifier = Modifier.padding(end = 4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Asistencia")
-                }
-
                 IconButton(onClick = { onEdit(alumn) }) {
                     Icon(
                         Icons.Default.Edit,
