@@ -14,14 +14,26 @@ import com.myapplication.R
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
+    override fun onNewToken(token: String) {
+        // Este token es la dirección única de este celular para Firebase.
+        // Se puede enviar a tu servidor aquí si el usuario ya está logueado.
+    }
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        // 1. Manejar mensajes que traen DATOS (más profesional)
+        if (remoteMessage.data.isNotEmpty()) {
+            val title = remoteMessage.data["title"] ?: "Aviso Escolar"
+            val message = remoteMessage.data["body"] ?: ""
+            val type = remoteMessage.data["type"] // Ejemplo: "NUEVO_PROFESOR"
+            
+            val finalTitle = if (type == "NUEVO_PROFESOR") "🎓 ¡Nuevo Profesor!" else title
+            sendNotification(finalTitle, message)
+        }
+
+        // 2. Manejar notificaciones estándar de la consola
         remoteMessage.notification?.let {
             sendNotification(it.title ?: "Escuela App", it.body ?: "")
         }
-    }
-
-    override fun onNewToken(token: String) {
-        // Enviar token al servidor si es necesario
     }
 
     private fun sendNotification(title: String, messageBody: String) {
@@ -33,24 +45,25 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         val channelId = "school_notifications"
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Asegúrate de que este icono exista
-            .setContentTitle(title)
-            .setContentText(messageBody)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
                 "Notificaciones de la Escuela",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
         }
 
-        notificationManager.notify(0, notificationBuilder.build())
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(messageBody)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // Para que aparezca arriba
+            .setContentIntent(pendingIntent)
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
     }
 }
