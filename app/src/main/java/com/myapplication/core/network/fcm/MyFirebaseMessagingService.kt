@@ -19,11 +19,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             sendNotification(it.title ?: "Escuela App", it.body ?: "")
         }
     }
-
+    // Funcion para enviar el token directo al servidor
     override fun onNewToken(token: String) {
         // Enviar token al servidor si es necesario
     }
-
+    //funcion que sireve para enviar notificaciones
     private fun sendNotification(title: String, messageBody: String) {
         val intent = Intent(this, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
