@@ -23,7 +23,8 @@ class TeacherViewModel @Inject constructor(
     private val createTeacherUseCase: CreateTeacherUseCase,
     private val updateTeacherUseCase: UpdateTeacherUseCase,
     private val deleteTeacherUseCase: DeleteTeacherUseCase,
-    private val teacherRepository: TeacherRepository
+    private val teacherRepository: TeacherRepository,
+    private val authRepository: com.myapplication.features.auth.domain.repositories.AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TeacherUiState>(TeacherUiState.Loading)
@@ -71,11 +72,18 @@ class TeacherViewModel @Inject constructor(
     fun createTeacher(token: String, name: String, asignature: String) {
         viewModelScope.launch {
             try {
+                createTeacherUseCase(token, TeacherDto(name = name, asignature = asignature))
+                
                 // Feedback instantáneo
                 _eventFlow.emit(TeacherEvent.ShowToast("Profesor agregado correctamente"))
                 _eventFlow.emit(TeacherEvent.SuccessVibration)
-                
-                createTeacherUseCase(token, TeacherDto(name = name, asignature = asignature))
+
+                // Enviar notificación a todos los dispositivos
+                authRepository.sendBroadcast(
+                    jwt = token.replace("Bearer ", ""),
+                    title = "¡Nuevo Profesor!",
+                    body = "Se ha registrado al profesor: $name"
+                )
             } catch (e: Exception) {
                 _eventFlow.emit(TeacherEvent.ShowToast("Guardado localmente"))
                 _eventFlow.emit(TeacherEvent.SuccessVibration)

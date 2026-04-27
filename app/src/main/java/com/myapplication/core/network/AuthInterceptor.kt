@@ -18,7 +18,7 @@ class AuthInterceptor @Inject constructor(
         val path = originalRequest.url.encodedPath
         val hasAuthHeader = originalRequest.header("Authorization") != null
 
-        if (!hasAuthHeader && !path.contains("login") && !path.contains("register")) {
+        if (!hasAuthHeader && !path.contains("login") && !path.contains("register") && !path.contains("notifications/token")) {
             val token = runBlocking {
                 userPreferencesRepository.userToken.first()
             }

@@ -12,4 +12,7 @@ interface AuthApi {
 
     @POST("/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
+
+    @POST("/auth/fcm-token")
+    suspend fun updateFcmToken(@Body request: Map<String, String>): Unit
 }

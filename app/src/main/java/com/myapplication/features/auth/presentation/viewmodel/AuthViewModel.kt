@@ -1,5 +1,6 @@
 package com.myapplication.features.auth.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.messaging.FirebaseMessaging
@@ -50,7 +51,21 @@ class AuthViewModel @Inject constructor(
                 if (!response.token.isNullOrBlank()) {
                     userPreferencesRepository.saveToken(response.token) // <--- Guardamos el token para uso biométrico
                     flashManager.triggerFlash()
-                    updateFcmTokenOnServer(response.token)
+                    
+                    // REGISTRO DE TOKEN FCM
+                    try {
+                        val fcmToken = FirebaseMessaging.getInstance().token.await()
+                        Log.d("FCM_TOKEN", "Token obtenido: $fcmToken")
+                        authRepository.updateFcmToken("Bearer ${response.token}", fcmToken)
+                        Log.d("FCM_API", "✅ Token enviado al backend")
+                        
+                        // Suscripción al topic global por seguridad
+                        FirebaseMessaging.getInstance().subscribeToTopic("global")
+                            .addOnCompleteListener { Log.d("FCM_API", "Suscrito a topic global") }
+                    } catch (e: Exception) {
+                        Log.e("FCM_TOKEN", "❌ Error al obtener token: ${e.message}")
+                    }
+
                     _authState.value = AuthState.Success(response.token)
                 } else {
                     _authState.value = AuthState.Error(response.message ?: "Error al iniciar sesión")
@@ -120,7 +135,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    private fun updateFcmTokenOnServer(authToken: String) {
+    fun updateFcmTokenOnServer(authToken: String) {
         viewModelScope.launch {
             try {
                 val fcmToken = FirebaseMessaging.getInstance().token.await()
@@ -145,8 +160,48 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    suspend fun getSavedToken(): String? {
+        return userPreferencesRepository.userToken.first()
+    }
+
     fun resetState() {
         _authState.value = AuthState.Idle
+    }
+
+    fun testPushToUser(userId: Int, title: String, body: String) {
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.userToken.first()
+                if (token != null) {
+                    val result = authRepository.sendPushToUser(token, userId, title, body)
+                    result.onSuccess {
+                        _authState.value = AuthState.SuccessMessage("Push enviado correctamente")
+                    }.onFailure {
+                        _authState.value = AuthState.Error(it.message ?: "Error al enviar push")
+                    }
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    fun testBroadcast(title: String, body: String) {
+        viewModelScope.launch {
+            try {
+                val token = userPreferencesRepository.userToken.first()
+                if (token != null) {
+                    val result = authRepository.sendBroadcast(token, title, body)
+                    result.onSuccess {
+                        _authState.value = AuthState.SuccessMessage("Broadcast enviado correctamente")
+                    }.onFailure {
+                        _authState.value = AuthState.Error(it.message ?: "Error al enviar broadcast")
+                    }
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Error desconocido")
+            }
+        }
     }
 }
 
@@ -154,6 +209,7 @@ sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
     data class Success(val token: String) : AuthState()
+    data class SuccessMessage(val message: String) : AuthState()
     data class RegisterSuccess(val message: String) : AuthState()
     data class Error(val message: String) : AuthState()
 }

@@ -16,11 +16,16 @@ class UserPreferencesRepository @Inject constructor(
 ) {
     private companion object {
         val USER_TOKEN = stringPreferencesKey("user_token")
+        val FCM_TOKEN = stringPreferencesKey("fcm_token")
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
     }
 
     val userToken: Flow<String?> = dataStore.data.map { preferences ->
         preferences[USER_TOKEN]
+    }
+
+    val fcmToken: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[FCM_TOKEN]
     }
 
     val isBiometricEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
@@ -30,6 +35,12 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun saveToken(token: String) {
         dataStore.edit { preferences ->
             preferences[USER_TOKEN] = token
+        }
+    }
+
+    suspend fun saveFcmToken(token: String) {
+        dataStore.edit { preferences ->
+            preferences[FCM_TOKEN] = token
         }
     }
 

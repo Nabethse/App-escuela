@@ -9,4 +9,6 @@ interface AuthRepository {
     suspend fun register(request: RegisterRequest): AuthResponse
     suspend fun logout()
     suspend fun updateFcmToken(token: String, fcmToken: String)
+    suspend fun sendPushToUser(jwt: String, userId: Int, title: String, body: String): Result<Unit>
+    suspend fun sendBroadcast(jwt: String, title: String, body: String): Result<Unit>
 }

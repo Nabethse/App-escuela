@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1034460190015",
-    "project_id": "escuelaapp-30000",
-    "storage_bucket": "escuelaapp-30000.firebasestorage.app"
+    "project_number": "195284582493",
+    "project_id": "escuela-app-b65b0",
+    "storage_bucket": "escuela-app-b65b0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1034460190015:android:7dc878ecccca2b6ff4ef8a",
+        "mobilesdk_app_id": "1:195284582493:android:c219196d4e12fa76fccdb4",
         "android_client_info": {
           "package_name": "com.myapplication"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBMPOYl7e7hmrDDYiO5lA7QmHlVCMN2DYE"
+          "current_key": "AIzaSyBhbSx8VMPnwdtuKjo4fSlYXVBLwZoF9Io"
         }
       ],
       "services": {

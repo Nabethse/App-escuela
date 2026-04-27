@@ -26,10 +26,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.myapplication.features.alumn.presentation.components.AlumnCard
 import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModel
+import com.myapplication.features.attendance.presentation.viewmodel.AttendanceViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.io.File
 import java.text.SimpleDateFormat
@@ -39,7 +41,8 @@ import java.util.*
 @Composable
 fun AlumnsScreen(
     viewModel: AlumnViewModel,
-    token: String
+    token: String,
+    attendanceViewModel: AttendanceViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -154,6 +157,10 @@ fun AlumnsScreen(
                                         } else {
                                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                                         }
+                                    },
+                                    onCheckIn = { id ->
+                                        attendanceViewModel.registerAttendance(id, alumn.name)
+                                        Toast.makeText(context, "Asistencia registrada para ${alumn.name}", Toast.LENGTH_SHORT).show()
                                     }
                                 )
                             }

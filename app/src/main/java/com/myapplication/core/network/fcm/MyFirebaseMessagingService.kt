@@ -11,33 +11,76 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.myapplication.MainActivity
 import com.myapplication.R
+import com.myapplication.core.data.UserPreferencesRepository
+import com.myapplication.features.auth.domain.repositories.AuthRepository
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
+    @Inject
+    lateinit var userPreferencesRepository: UserPreferencesRepository
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        remoteMessage.notification?.let {
-            sendNotification(it.title ?: "Escuela App", it.body ?: "")
+        // 1. Manejar si viene como payload de DATA (Recomendado para customizar)
+        if (remoteMessage.data.isNotEmpty()) {
+            val title = remoteMessage.data["title"] ?: remoteMessage.notification?.title ?: "Escuela App"
+            val body = remoteMessage.data["body"] ?: remoteMessage.notification?.body ?: ""
+            sendNotification(title, body)
+        } 
+        // 2. Manejar si viene como payload de NOTIFICATION
+        else {
+            remoteMessage.notification?.let {
+                sendNotification(it.title ?: "Escuela App", it.body ?: "")
+            }
         }
     }
-    // Funcion para enviar el token directo al servidor
+
     override fun onNewToken(token: String) {
-        // Enviar token al servidor si es necesario
+        super.onNewToken(token)
+        scope.launch {
+            userPreferencesRepository.saveFcmToken(token)
+            
+            val userToken = userPreferencesRepository.userToken.first()
+            if (!userToken.isNullOrBlank()) {
+                try {
+                    authRepository.updateFcmToken("Bearer $userToken", token)
+                } catch (e: Exception) {
+                    // Log error if needed
+                }
+            }
+        }
     }
-    //funcion que sireve para enviar notificaciones
+
     private fun sendNotification(title: String, messageBody: String) {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val channelId = "school_notifications"
+        val channelId = "canal_estudiantes"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Asegúrate de que este icono exista
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // Asegúrate de que el icono sea blanco/transparente
             .setContentTitle(title)
             .setContentText(messageBody)
             .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -45,12 +88,19 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Notificaciones de la Escuela",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
+                "Notificaciones",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Canal para notificaciones de la escuela"
+            }
             notificationManager.createNotificationChannel(channel)
         }
 
-        notificationManager.notify(0, notificationBuilder.build())
+        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
     }
 }

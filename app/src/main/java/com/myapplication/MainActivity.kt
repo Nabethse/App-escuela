@@ -7,15 +7,18 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.messaging.FirebaseMessaging
 import com.myapplication.core.util.BiometricAuthenticator
 import com.myapplication.features.alumn.presentation.screens.AlumnsScreen
 import com.myapplication.features.alumn.presentation.viewmodel.AlumnViewModel
@@ -30,6 +33,7 @@ import com.myapplication.features.teacher.presentation.screens.TeachersScreen
 import com.myapplication.features.teacher.presentation.viewmodel.TeacherViewModel
 import com.myapplication.ui.theme.InventarioAPPTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -52,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         
         askNotificationPermission()
+        syncFcmToken()
 
         setContent {
             InventarioAPPTheme {
@@ -139,6 +144,23 @@ class MainActivity : AppCompatActivity() {
                         val alumnViewModel: AlumnViewModel = hiltViewModel()
                         val token = (authState as? AuthState.Success)?.token ?: ""
                         AlumnsScreen(viewModel = alumnViewModel, token = token)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun syncFcmToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val fcmToken = task.result
+                val authViewModel: AuthViewModel by viewModels()
+                
+                // Forzamos el envío del token si ya hay un token JWT guardado en el repositorio
+                lifecycleScope.launch {
+                    val savedToken = authViewModel.getSavedToken()
+                    if (!savedToken.isNullOrBlank()) {
+                        authViewModel.updateFcmTokenOnServer(savedToken)
                     }
                 }
             }

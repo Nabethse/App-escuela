@@ -94,9 +94,9 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.messaging.ktx)
-    implementation(libs.firebase.analytics.ktx)
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
